@@ -20,6 +20,7 @@ dist/
 out/
 build/
 .react-router/
+.serena/
 
 # Misc
 .DS_Store
