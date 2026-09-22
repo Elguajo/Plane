@@ -1,0 +1,52 @@
+# Development override: persistent service data stays in the repository.
+# Start with:
+# docker compose -f docker-compose-local.yml -f docker-compose-local.bind-mounts.yml up -d
+services:
+  plane-db:
+    volumes:
+      - ./.local-data/postgres:/var/lib/postgresql/data
+    ports: !override
+      - "15432:5432"
+
+  plane-redis:
+    volumes:
+      - ./.local-data/redis:/data
+    ports: !override
+      - "16379:6379"
+
+  plane-mq:
+    volumes:
+      - ./.local-data/rabbitmq:/var/lib/rabbitmq
+
+  plane-minio:
+    volumes:
+      - ./.local-data/minio:/export
+    ports: !override
+      - "19000:9000"
+      - "19090:9090"
+
+  api:
+    image: plane-api
+    build:
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+    environment:
+      AWS_S3_ENDPOINT_URL: http://plane-minio:9000
+
+  worker:
+    image: plane-api
+    build: !reset null
+    environment:
+      AWS_S3_ENDPOINT_URL: http://plane-minio:9000
+
+  beat-worker:
+    image: plane-api
+    build: !reset null
+    environment:
+      AWS_S3_ENDPOINT_URL: http://plane-minio:9000
+
+  migrator:
+    image: plane-api
+    build: !reset null
+    environment:
+      AWS_S3_ENDPOINT_URL: http://plane-minio:9000

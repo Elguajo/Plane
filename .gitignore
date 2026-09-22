@@ -21,6 +21,7 @@ out/
 build/
 .react-router/
 .serena/
+.local-data/
 
 # Misc
 .DS_Store

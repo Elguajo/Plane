@@ -1,35 +1,36 @@
+FROM node:22-alpine AS node
+
 FROM python:3.12.5-alpine AS backend
+
+ARG PIP_INDEX_URL=https://pypi.org/simple
 
 # set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV PIP_DISABLE_PIP_VERSION_CHECK=1 
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
+ENV PIP_INDEX_URL=${PIP_INDEX_URL}
 ENV INSTANCE_CHANGELOG_URL https://sites.plane.so/pages/691ef037bcfe416a902e48cb55f59891/
+
+COPY --from=node /usr/local /usr/local
 
 RUN apk --no-cache add \
     "bash~=5.2" \
     "libpq" \
     "libxslt" \
-    "nodejs-current" \
     "xmlsec" \
-    "libffi-dev" \
-    "bash~=5.2" \
-    "g++" \
-    "gcc" \
-    "cargo" \
-    "git" \
-    "make" \
-    "postgresql-dev" \
-    "libc-dev" \
-    "linux-headers"
+    "libffi" \
+    "libstdc++"
 
 WORKDIR /code
 
 COPY requirements.txt ./requirements.txt
 ADD requirements ./requirements
 
-# Install the local development settings
-RUN pip install -r requirements/local.txt --compile --no-cache-dir
+# psycopg-binary is pinned alongside psycopg and provides the supported
+# precompiled implementation on Alpine/ARM. Avoid compiling psycopg-c in the
+# local development image, which otherwise requires a full toolchain.
+RUN sed -i '/^psycopg-c==/d' requirements/base.txt \
+    && pip install -r requirements/local.txt --compile --no-cache-dir
 
 
 COPY . .
@@ -43,4 +44,3 @@ RUN chmod -R 777 /code
 EXPOSE 8000
 
 CMD [ "./bin/docker-entrypoint-api-local.sh" ]
-
